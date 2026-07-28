@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.text import router as text_router
 from api.image import router as image_router
+from api.audio import router as audio_router
+from api.video import router as video_router
+from api.url import router as url_router
 
 app = FastAPI(
     title="Project ARGUS API",
@@ -13,6 +16,9 @@ app = FastAPI(
 # Register API routes
 app.include_router(text_router)
 app.include_router(image_router)
+app.include_router(audio_router)
+app.include_router(video_router)
+app.include_router(url_router)
 
 # Allow frontend to communicate
 app.add_middleware(
