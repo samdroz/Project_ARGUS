@@ -1,6 +1,8 @@
-from api.text import router as text_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from api.text import router as text_router
+from api.image import router as image_router
 
 app = FastAPI(
     title="Project ARGUS API",
@@ -8,7 +10,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Register API routes
 app.include_router(text_router)
+app.include_router(image_router)
 
 # Allow frontend to communicate
 app.add_middleware(
