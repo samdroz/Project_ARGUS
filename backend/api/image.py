@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from utils.file_handler import save_uploaded_file
-from ai.image.detecter import detect_image
+from services.image_service import image_service
 
 router = APIRouter(
     prefix="/analyze",
@@ -14,18 +14,13 @@ ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png"]
 @router.post("/image")
 async def analyze_image(file: UploadFile = File(...)):
     try:
+
         file_info = save_uploaded_file(file, ALLOWED_EXTENSIONS)
 
-        prediction, confidence = detect_image(file_info["path"])
-
-        return {
-            "status": "success",
-            "file_id": file_info["file_id"],
-            "filename": file_info["filename"],
-            "prediction": prediction,
-            "confidence": confidence,
-            "trust_score": 0
-        }
+        return image_service.analyze(file_info)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
