@@ -6,6 +6,7 @@ from api.image import router as image_router
 from api.audio import router as audio_router
 from api.video import router as video_router
 from api.url import router as url_router
+from api.video import router as video_router
 
 app = FastAPI(
     title="Project ARGUS API",

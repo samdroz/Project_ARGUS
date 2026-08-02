@@ -3,7 +3,7 @@ class ReportService:
     def build_report(
         self,
         file_info: dict,
-        image_result: dict,
+        analysis_result: dict,
         trust_result: dict
     ):
 
@@ -16,7 +16,7 @@ class ReportService:
             },
 
             "analysis": {
-                **image_result,
+                **analysis_result,
                 **trust_result
             }
         }
