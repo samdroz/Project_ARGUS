@@ -5,9 +5,16 @@ from transformers import (
     AutoModelForSequenceClassification
 )
 
-MODEL_NAME = "hamzab/roberta-fake-news-classification"
+from config.settings import settings
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+MODEL_NAME = settings.TEXT_MODEL
+
+DEVICE = (
+    settings.DEVICE
+    if torch.cuda.is_available()
+    else "cpu"
+)
 
 print(f"Loading {MODEL_NAME}...")
 
