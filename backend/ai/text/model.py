@@ -1,31 +1,8 @@
-import torch
+from ai.model_manager import model_manager
 
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSequenceClassification
-)
+MODEL_NAME = "Text Model"
 
-from config.settings import settings
+DEVICE = model_manager.device
 
-
-MODEL_NAME = settings.TEXT_MODEL
-
-DEVICE = (
-    settings.DEVICE
-    if torch.cuda.is_available()
-    else "cpu"
-)
-
-print(f"Loading {MODEL_NAME}...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-
-model = AutoModelForSequenceClassification.from_pretrained(
-    MODEL_NAME
-)
-
-model.to(DEVICE)
-
-model.eval()
-
-print(f"Loaded on {DEVICE}")
+tokenizer = model_manager.text_tokenizer
+model = model_manager.text_model

@@ -1,31 +1,8 @@
-import torch
+from ai.model_manager import model_manager
 
-from transformers import (
-    AutoImageProcessor,
-    AutoModelForImageClassification
-)
+MODEL_NAME = "Image Model"
 
-from config.settings import settings
+DEVICE = model_manager.device
 
-
-MODEL_NAME = settings.IMAGE_MODEL
-
-DEVICE = (
-    settings.DEVICE
-    if torch.cuda.is_available()
-    else "cpu"
-)
-
-print(f"Loading {MODEL_NAME}...")
-
-processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
-
-model = AutoModelForImageClassification.from_pretrained(
-    MODEL_NAME
-)
-
-model.to(DEVICE)
-
-model.eval()
-
-print(f"Loaded on {DEVICE}")
+processor = model_manager.image_processor
+model = model_manager.image_model
