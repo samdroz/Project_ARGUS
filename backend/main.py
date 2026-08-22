@@ -1,11 +1,14 @@
+from contextlib import asynccontextmanager
+import os
+from pathlib import Path
 import torch
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from config.settings import settings
 from utils.logger import logger
-
 from ai.model_manager import model_manager
 
 from api.image import router as image_router
@@ -15,15 +18,18 @@ from api.audio import router as audio_router
 from api.url import router as url_router
 
 
-# ---------------------------------------------------------
-# Startup
-# ---------------------------------------------------------
-
-logger.info("Starting Project ARGUS Backend...")
-
-model_manager.load_all()
-
-logger.info("AI models loaded successfully.")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting Project ARGUS Backend...")
+    try:
+        model_manager.load_all()
+        logger.info("Model initialization pass completed.")
+    except Exception as e:
+        logger.error(f"Startup model load notice: {e}")
+    yield
+    # Shutdown
+    logger.info("Project ARGUS Backend shutting down.")
 
 
 # ---------------------------------------------------------
@@ -32,9 +38,10 @@ logger.info("AI models loaded successfully.")
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="AI-powered Multi-Modal Fake News & Deepfake Detection System",
+    description="AI-powered Multi-Modal Fake News, Deepfake & Claim Verification System",
     version=settings.APP_VERSION,
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
+    lifespan=lifespan
 )
 
 
@@ -44,7 +51,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Restrict in production
+    allow_origins=settings.CORS_ORIGINS if settings.CORS_ORIGINS else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -70,11 +77,12 @@ logger.info("All API routes registered successfully.")
 
 @app.get("/", tags=["System"])
 def root():
-
     return {
         "application": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "status": "Running"
+        "status": "Running",
+        "supported_modalities": ["text", "image", "video", "audio", "url"],
+        "docs_url": "/docs"
     }
 
 
@@ -85,50 +93,42 @@ def root():
 @app.get(
     "/health",
     tags=["System"],
-    summary="System Health Check"
+    summary="System & AI Health Check"
 )
 def health():
-
+    summary = model_manager.get_status_summary()
     return {
-
         "status": "healthy",
-
         "application": {
             "name": settings.APP_NAME,
             "version": settings.APP_VERSION
         },
-
         "system": {
-            "device": model_manager.device,
-            "cuda_available": torch.cuda.is_available()
+            "device": summary["device"],
+            "cuda_available": summary["cuda_available"],
+            "cuda_device_name": summary["cuda_device_name"]
         },
-
-        "models": {
-
-            "image": (
-                "loaded"
-                if model_manager.image_model
-                else "not_loaded"
-            ),
-
-            "text": (
-                "loaded"
-                if model_manager.text_model
-                else "not_loaded"
-            ),
-
-            "audio": "not_loaded"
-
-        },
-
+        "models": summary["models"],
         "services": {
-
-            "trust_engine": "running",
-
-            "metadata": "running",
-
-            "report_service": "running"
-
+            "trust_engine": "active",
+            "metadata_analyzer": "active",
+            "evidence_agent": "active",
+            "forensics": "active",
+            "report_service": "active"
         }
-
     }
+
+
+# ---------------------------------------------------------
+# Frontend Static Files
+# ---------------------------------------------------------
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+if FRONTEND_DIR.exists():
+    @app.get("/app", tags=["Frontend"], include_in_schema=False)
+    def serve_frontend():
+        return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
+    logger.info(f"Frontend mounted at /app from {FRONTEND_DIR}")

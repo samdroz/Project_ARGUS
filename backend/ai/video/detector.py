@@ -1,24 +1,36 @@
-from ai.image.detecter import detect_image
+from typing import List, Dict, Any
+from ai.image.detector import detect_image
 
 
 class VideoDetector:
+    """
+    Performs frame-by-frame deepfake and forensic detection.
+    """
 
-    def analyze_frames(self, frame_paths):
+    def analyze_frames(self, frames_meta: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Analyze extracted video frames and collect per-frame findings.
+        """
+        results = []
 
-        predictions = []
-        confidences = []
+        for frame in frames_meta:
+            frame_path = frame["path"]
+            frame_no = frame["frame_no"]
+            timestamp_sec = frame["timestamp_sec"]
 
-        for frame in frame_paths:
+            detection = detect_image(frame_path)
 
-            result = detect_image(frame)
+            results.append({
+                "frame_no": frame_no,
+                "timestamp_sec": timestamp_sec,
+                "prediction": detection.get("prediction", "Real"),
+                "confidence": detection.get("confidence", 50.0),
+                "face_detected": detection.get("face_detected", False),
+                "model": detection.get("model", "Unknown"),
+                "forensics": detection.get("forensics", {})
+            })
 
-            predictions.append(result["prediction"])
-            confidences.append(result["confidence"])
-
-        return {
-            "predictions": predictions,
-            "confidences": confidences
-        }
+        return results
 
 
 video_detector = VideoDetector()

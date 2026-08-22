@@ -1,88 +1,52 @@
+from typing import Optional
+
+
 def get_recommendation(
     prediction: str,
     confidence: float,
     risk_level: str,
-    media_type: str = "image"
+    verdict: str,
+    media_type: str = "text"
 ) -> str:
-
+    """
+    Produce calibrated, actionable recommendation for users and moderators.
+    """
     media = media_type.lower()
 
-    # ---------- TEXT ----------
-    if media == "text":
+    if risk_level == "INSUFFICIENT_EVIDENCE" or verdict == "UNVERIFIED":
+        return (
+            f"The authenticity of this {media} could not be definitively established. "
+            "Independent cross-referencing with primary sources is required before taking action or sharing."
+        )
 
-        if prediction == "Fake":
+    if risk_level == "CRITICAL" or verdict == "CONTRADICTED":
+        return (
+            f"High risk of misinformation/manipulation. The submitted {media} exhibits strong contradiction with factual records "
+            "or severe manipulation artifacts. Do not amplify or treat as factual without verified correction."
+        )
 
-            if risk_level == "HIGH":
-                return (
-                    "The submitted text is highly likely to contain misinformation "
-                    "or false claims. Verify it using trusted news sources before sharing."
-                )
-
-            elif risk_level == "MEDIUM":
-                return (
-                    "The submitted text may contain misleading information. "
-                    "Cross-check it with reliable sources."
-                )
-
-            else:
-                return (
-                    "The submitted text shows minor signs of misinformation. "
-                    "Additional verification is recommended."
-                )
-
-        else:
-
-            if risk_level == "LOW":
-                return (
-                    "The submitted text appears credible based on the AI model's analysis."
-                )
-
-            elif risk_level == "MEDIUM":
-                return (
-                    "The submitted text appears mostly credible, "
-                    "but independent verification is recommended."
-                )
-
-            else:
-                return (
-                    "The submitted text could not be verified with high confidence."
-                )
-
-    # ---------- IMAGE / VIDEO ----------
-
-    if prediction == "Real":
-
-        if risk_level == "LOW":
+    if risk_level == "HIGH":
+        if media in ("image", "video", "audio"):
             return (
-                f"The uploaded {media} appears authentic. "
-                "No significant signs of manipulation were detected."
+                f"Elevated manipulation indicators detected in this {media}. "
+                "Inspect individual forensic factors and seek original source files."
             )
-
-        elif risk_level == "MEDIUM":
-            return (
-                f"The uploaded {media} appears authentic, "
-                "but further verification is recommended."
-            )
-
         else:
             return (
-                f"The uploaded {media} could not be verified with high confidence."
+                "The text exhibits sensationalist misinformation markers or uncorroborated claims. "
+                "Verify through official newsrooms or fact-checkers."
             )
 
-    else:
+    if risk_level == "MEDIUM":
+        return (
+            f"The {media} contains mixed or moderate credibility signals. "
+            "Exercise caution and verify key claims or imagery against known primary sources."
+        )
 
-        if risk_level == "HIGH":
-            return (
-                f"The uploaded {media} is highly likely to be manipulated "
-                "or AI-generated. Treat it with caution."
-            )
+    if risk_level == "LOW" or verdict in ("SUPPORTED", "VERIFIED"):
+        return (
+            f"The {media} appears credible and authentic based on available evidence and forensic analysis. "
+            "No significant indicators of manipulation or false claims were found."
+        )
 
-        elif risk_level == "MEDIUM":
-            return (
-                f"The uploaded {media} shows possible signs of manipulation."
-            )
-
-        else:
-            return (
-                f"The uploaded {media} may contain manipulated content."
-            )
+    return f"Review the detailed factors and sources for this {media}."
