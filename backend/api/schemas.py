@@ -1,17 +1,23 @@
-from pydantic import BaseModel
-from pydantic import BaseModel, HttpUrl
+from schemas.response import (
+    StandardResponse,
+    FileInfo,
+    TrustInfo,
+    ProcessingInfo,
+    EvidenceInfo,
+    ClaimItem,
+    SourceItem
+)
+from schemas.text import TextRequest
+from schemas.url import URLRequest
 
-class URLRequest(BaseModel):
-    url: HttpUrl
-
-
-class AnalysisResponse(BaseModel):
-    module: str
-    prediction: str
-    confidence: float
-    trust_score: int
-    message: str
-
-
-class TextRequest(BaseModel):
-    text: str
+__all__ = [
+    "StandardResponse",
+    "FileInfo",
+    "TrustInfo",
+    "ProcessingInfo",
+    "EvidenceInfo",
+    "ClaimItem",
+    "SourceItem",
+    "TextRequest",
+    "URLRequest"
+]

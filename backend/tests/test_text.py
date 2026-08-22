@@ -1,8 +1,10 @@
 from ai.text.detector import detect_text
 
-result = detect_text(
-    title="NASA confirms aliens landed in New York",
-    content="Scientists officially confirmed that aliens landed yesterday."
-)
 
-print(result)
+def test_legacy_text_detection():
+    res = detect_text(
+        title="NASA aliens",
+        content="Scientists confirmed discovery."
+    )
+    assert res["media_type"] == "text"
+    assert "prediction" in res

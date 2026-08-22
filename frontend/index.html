@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project ARGUS — AI-Powered Multimodal Verification Platform for detecting deepfakes, misinformation, and manipulated media.">
+    <title>Project ARGUS — Verification Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <!-- ============================================================ -->
+    <!-- NAVIGATION -->
+    <!-- ============================================================ -->
+    <nav id="main-nav">
+        <div class="nav-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="16" cy="16" r="14" stroke="url(#navGrad)" stroke-width="2.5"/>
+                    <path d="M16 6 L22 14 L16 26 L10 14 Z" fill="url(#navGrad)" opacity="0.85"/>
+                    <circle cx="16" cy="14" r="3" fill="#0a0e1a"/>
+                    <defs>
+                        <linearGradient id="navGrad" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" stop-color="#6366f1"/>
+                            <stop offset="100%" stop-color="#06b6d4"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <span class="brand-text">ARGUS</span>
+            <span class="brand-tag">v2.0</span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="nav-link active" data-section="verify">Verify</a>
+            <a href="#" class="nav-link" data-section="history">History</a>
+        </div>
+        <div class="nav-status" id="nav-status">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting…</span>
+        </div>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- HERO SECTION -->
+    <!-- ============================================================ -->
+    <header id="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+            <h1>Multimodal Verification Platform</h1>
+            <p class="hero-sub">Analyze text, images, video, audio, and URLs for deepfakes, misinformation, and manipulation using AI forensics and evidence-based fact-checking.</p>
+        </div>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- MODALITY TABS -->
+    <!-- ============================================================ -->
+    <main id="app">
+        <section class="modality-bar">
+            <button class="mod-tab active" data-modality="text" id="tab-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>Text</span>
+            </button>
+            <button class="mod-tab" data-modality="image" id="tab-image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Image</span>
+            </button>
+            <button class="mod-tab" data-modality="video" id="tab-video">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <span>Video</span>
+            </button>
+            <button class="mod-tab" data-modality="audio" id="tab-audio">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span>Audio</span>
+            </button>
+            <button class="mod-tab" data-modality="url" id="tab-url">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                <span>URL</span>
+            </button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- INPUT PANELS -->
+        <!-- ============================================================ -->
+        <section class="input-zone">
+            <!-- TEXT -->
+            <div class="input-panel active" id="panel-text">
+                <div class="input-card glass">
+                    <h2>Text & Article Verification</h2>
+                    <p class="input-desc">Paste a headline and article body to detect misinformation markers and verify factual claims.</p>
+                    <div class="form-group">
+                        <label for="text-title">Headline / Title</label>
+                        <input type="text" id="text-title" placeholder="Enter headline…" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="text-content">Article Content</label>
+                        <textarea id="text-content" rows="6" placeholder="Paste the full article text here…"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="text-verify-claims" checked>
+                            <span class="toggle-switch"></span>
+                            Verify Claims
+                        </label>
+                        <button class="btn-primary" id="btn-analyze-text">
+                            <span class="btn-icon">⟐</span> Analyze Text
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IMAGE -->
+            <div class="input-panel" id="panel-image">
+                <div class="input-card glass">
+                    <h2>Image Forensic Analysis</h2>
+                    <p class="input-desc">Upload an image to detect AI generation, deepfake manipulation, and compression artifacts using ViT and ELA forensics.</p>
+                    <div class="upload-zone" id="image-dropzone">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <p>Drag & drop an image or <span class="upload-browse">browse</span></p>
+                        <p class="upload-hint">JPG, PNG, WebP, BMP — Max 10MB</p>
+                        <input type="file" id="image-file" accept=".jpg,.jpeg,.png,.webp,.bmp" hidden>
+                    </div>
+                    <div class="file-preview" id="image-preview" style="display:none">
+                        <img id="image-preview-img" alt="Preview">
+                        <button class="btn-clear" id="image-clear">✕</button>
+                    </div>
+                    <button class="btn-primary" id="btn-analyze-image" disabled>
+                        <span class="btn-icon">⟐</span> Analyze Image
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIDEO -->
+            <div class="input-panel" id="panel-video">
+                <div class="input-card glass">
+                    <h2>Video Deepfake Detection</h2>
+                    <p class="input-desc">Upload a video clip to analyze frames for temporal inconsistencies, synthetic face artifacts, and deepfake signatures.</p>
+                    <div class="upload-zone" id="video-dropzone">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        <p>Drag & drop a video or <span class="upload-browse">browse</span></p>
+                        <p class="upload-hint">MP4, AVI, MOV — Max 50MB</p>
+                        <input type="file" id="video-file" accept=".mp4,.avi,.mov,.mkv" hidden>
+                    </div>
+                    <div class="file-preview" id="video-preview" style="display:none">
+                        <video id="video-preview-el" controls></video>
+                        <button class="btn-clear" id="video-clear">✕</button>
+                    </div>
+                    <button class="btn-primary" id="btn-analyze-video" disabled>
+                        <span class="btn-icon">⟐</span> Analyze Video
+                    </button>
+                </div>
+            </div>
+
+            <!-- AUDIO -->
+            <div class="input-panel" id="panel-audio">
+                <div class="input-card glass">
+                    <h2>Audio Authenticity Analysis</h2>
+                    <p class="input-desc">Upload an audio file to detect voice cloning, text-to-speech artifacts, and spectral anomalies.</p>
+                    <div class="upload-zone" id="audio-dropzone">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        <p>Drag & drop an audio file or <span class="upload-browse">browse</span></p>
+                        <p class="upload-hint">WAV, MP3, OGG, FLAC — Max 25MB</p>
+                        <input type="file" id="audio-file" accept=".wav,.mp3,.ogg,.flac" hidden>
+                    </div>
+                    <div class="file-preview" id="audio-preview" style="display:none">
+                        <audio id="audio-preview-el" controls></audio>
+                        <button class="btn-clear" id="audio-clear">✕</button>
+                    </div>
+                    <button class="btn-primary" id="btn-analyze-audio" disabled>
+                        <span class="btn-icon">⟐</span> Analyze Audio
+                    </button>
+                </div>
+            </div>
+
+            <!-- URL -->
+            <div class="input-panel" id="panel-url">
+                <div class="input-card glass">
+                    <h2>URL & Web Article Verification</h2>
+                    <p class="input-desc">Enter a URL to extract article content, classify domain credibility, and fact-check claims.</p>
+                    <div class="form-group">
+                        <label for="url-input">Web URL</label>
+                        <input type="url" id="url-input" placeholder="https://example.com/article…" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="url-verify-claims" checked>
+                            <span class="toggle-switch"></span>
+                            Verify Claims
+                        </label>
+                        <button class="btn-primary" id="btn-analyze-url">
+                            <span class="btn-icon">⟐</span> Analyze URL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- LOADING OVERLAY -->
+        <!-- ============================================================ -->
+        <div class="loading-overlay" id="loading-overlay" style="display:none">
+            <div class="loading-card glass">
+                <div class="spinner"></div>
+                <p class="loading-text" id="loading-text">Analyzing…</p>
+                <p class="loading-sub">Running AI models and forensic checks</p>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- RESULTS SECTION -->
+        <!-- ============================================================ -->
+        <section class="results-zone" id="results-zone" style="display:none">
+            <div class="results-header">
+                <h2>Analysis Results</h2>
+                <button class="btn-secondary" id="btn-new-analysis">← New Analysis</button>
+            </div>
+
+            <!-- Trust Meter -->
+            <div class="result-card glass trust-card" id="trust-card">
+                <div class="trust-meter-wrap">
+                    <div class="trust-ring-container">
+                        <svg class="trust-ring" viewBox="0 0 120 120">
+                            <circle class="trust-ring-bg" cx="60" cy="60" r="52" />
+                            <circle class="trust-ring-fill" cx="60" cy="60" r="52" id="trust-ring-fill"/>
+                        </svg>
+                        <div class="trust-ring-value" id="trust-ring-value">—</div>
+                    </div>
+                    <div class="trust-meta">
+                        <div class="trust-verdict" id="trust-verdict">ANALYZING</div>
+                        <div class="trust-risk" id="trust-risk">
+                            <span class="risk-badge" id="risk-badge">—</span>
+                        </div>
+                        <div class="trust-prediction">
+                            <span class="pred-label">Prediction:</span>
+                            <span class="pred-value" id="pred-value">—</span>
+                            <span class="pred-conf" id="pred-conf">—</span>
+                        </div>
+                        <div class="trust-model" id="trust-model">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Factors -->
+            <div class="result-card glass" id="factors-card" style="display:none">
+                <h3>Trust Factors</h3>
+                <div class="factors-list" id="factors-list"></div>
+            </div>
+
+            <!-- Recommendation -->
+            <div class="result-card glass" id="recommendation-card" style="display:none">
+                <h3>Recommendation</h3>
+                <p class="recommendation-text" id="recommendation-text"></p>
+            </div>
+
+            <!-- Limitations -->
+            <div class="result-card glass" id="limitations-card" style="display:none">
+                <h3>⚠ Limitations</h3>
+                <ul class="limitations-list" id="limitations-list"></ul>
+            </div>
+
+            <!-- Claims -->
+            <div class="result-card glass" id="claims-card" style="display:none">
+                <h3>Claim Verification</h3>
+                <div class="claims-list" id="claims-list"></div>
+            </div>
+
+            <!-- Forensics -->
+            <div class="result-card glass" id="forensics-card" style="display:none">
+                <h3>Digital Forensics</h3>
+                <div class="forensics-grid" id="forensics-grid"></div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="result-card glass" id="metadata-card" style="display:none">
+                <h3>File Metadata</h3>
+                <div class="metadata-table" id="metadata-table"></div>
+            </div>
+
+            <!-- Raw JSON -->
+            <details class="result-card glass raw-json-card">
+                <summary>Raw API Response</summary>
+                <pre id="raw-json"></pre>
+            </details>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- HISTORY SECTION -->
+        <!-- ============================================================ -->
+        <section class="history-zone" id="history-zone" style="display:none">
+            <div class="results-header">
+                <h2>Analysis History</h2>
+                <button class="btn-secondary" id="btn-clear-history">Clear All</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <p class="history-empty">No analyses yet. Start by verifying content above.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================================ -->
+    <footer>
+        <p>Project ARGUS v2.0 — AI-Powered Multimodal Verification Platform</p>
+        <p class="footer-note">Results are probabilistic assessments, not definitive truth. Always apply critical thinking.</p>
+    </footer>
+
+    <script src="app.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>
