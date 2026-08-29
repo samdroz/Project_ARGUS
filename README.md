@@ -1,253 +1,173 @@
-<div align="center">
+# Project ARGUS — Multimodal AI Verification Platform
 
-# Project ARGUS
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.11%2Bcu128-orange.svg)](https://pytorch.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Multi-modal AI platform for detecting fake news and deepfakes — with explainable trust scoring, not just a "fake" label.**
-
-![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi)
-![PyTorch](https://img.shields.io/badge/PyTorch-AI-red?logo=pytorch)
-![Transformers](https://img.shields.io/badge/HuggingFace-Transformers-yellow)
-![CUDA](https://img.shields.io/badge/GPU-CUDA-green)
-![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-blue)
-
-[Highlights](#project-highlights) · [Quick Start](#quick-start) · [API Reference](#api-reference) · [Roadmap](#roadmap) · [Report a Bug](../../issues)
-
-</div>
+**Project ARGUS** is a production-ready multimodal AI verification platform for detecting deepfakes, misinformation, and manipulated media. It combines neural AI models with deterministic digital forensics and an evidence-based fact-checking agent to produce calibrated, honest trust assessments.
 
 ---
 
-### Demo
+## Features
 
-🎬 *A walkthrough GIF showing a live request and its trust-score response will go here once the dashboard ships. In the meantime, spin up the backend and explore every endpoint interactively through the built-in Swagger UI at `/docs`.*
+| Modality | Detection Methods |
+|----------|------------------|
+| **Text** | RoBERTa fake-news classification · Stylistic/linguistic analysis · Claim extraction & fact-checking |
+| **Image** | ViT deepfake detection · Error Level Analysis (ELA) · FFT frequency forensics · EXIF metadata |
+| **Video** | Frame-level ViT detection · Temporal aggregation · Suspicious burst analysis |
+| **Audio** | Spectral forensics (STFT, centroid, flatness) · Zero-crossing rate · Pitch stability · Spectral discontinuity |
+| **URL** | SSRF-protected content extraction · Domain authority classification · Claim verification |
 
----
-
-## Project Highlights
-
-- **One API, three modalities** — text, image, and video verification behind a single, consistent interface instead of three separate tools.
-- **Explainable by default** — every result returns a trust score, a risk level, a confidence value, and the specific factors behind the verdict, not just "real" or "fake."
-- **Modular model layer** — image, video, and text inference run as independent services behind a model manager, so any individual model can be upgraded or swapped without touching the API surface.
-- **GPU-accelerated inference** — CUDA support out of the box for faster turnaround on image and video workloads.
-- **Fully documented API** — interactive Swagger / OpenAPI docs generated automatically from the FastAPI backend, no separate docs site to maintain.
-
----
-
-## The Problem
-
-Misinformation today isn't confined to one format. A false claim can travel as a manipulated headline, an AI-generated image, or a deepfake video — and most detection tools only look at one of those at a time. Worse, they tend to return a bare "real" or "fake" verdict with no reasoning behind it, which makes the output hard to trust and even harder to act on.
-
-## The Solution
-
-ARGUS is a single backend that evaluates **text, images, and video** through purpose-built models, then runs every result through a **Trust Engine** that produces a score, a risk level, and a plain-language explanation of *why*. It's designed to sit underneath a product — a moderation tool, a browser extension, a newsroom workflow — rather than function as a standalone demo.
-
-- **Text** — fine-tuned RoBERTa classifier for fake news detection
-- **Images** — Vision Transformer for AI-generated / manipulated image detection
-- **Video** — frame-level extraction and analysis, aggregated into an overall authenticity score
-- **Trust Engine** — score, risk level, confidence, explainable factors, and a recommendation, instead of a binary label
-- **Metadata analysis** — pulls available file metadata into the verification context
-- **GPU acceleration** — CUDA-backed inference via PyTorch
-
----
-
-## Screenshots
-
-📸 *Swagger UI walkthroughs and sample trust-score responses will be added here as the project's frontend and documentation mature. Until then, `/docs` gives you a live, interactive view of every endpoint after you run the server locally.*
+### Core Engine
+- **Trust Engine** — Multi-signal calibrated trust scoring (0–100) with risk levels: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`, `INSUFFICIENT_EVIDENCE`
+- **Fact-Checker Agent** — Modular search provider interface with DuckDuckGo and deterministic fallbacks
+- **Honest Uncertainty** — No fabricated outputs. If evidence is insufficient: `trust_score = null`, `verdict = UNVERIFIED`
+- **SSRF Protection** — Blocks loopback, private subnets, AWS/GCP metadata endpoints, non-HTTP schemes
 
 ---
 
 ## Architecture
 
 ```
-User Uploads Media
-        │
-        ▼
-  FastAPI Backend
-        │
-        ▼
-   Service Layer
-   ┌────┼────┐
-   ▼    ▼    ▼
- Image Video Text
-  AI    AI    AI
-   └────┼────┘
-        ▼
-  Trust Engine
-        ▼
-Standardized JSON Response
+PROJECT ARGUS/
+├── backend/                    # FastAPI backend
+│   ├── ai/
+│   │   ├── model_manager.py    # Centralized lazy model loader (CUDA/CPU)
+│   │   ├── text/               # RoBERTa text pipeline
+│   │   ├── image/              # ViT + ELA image pipeline
+│   │   ├── video/              # Frame extraction + temporal analysis
+│   │   ├── audio/              # Spectral acoustic forensics
+│   │   ├── url/                # SSRF validator + content extractor
+│   │   ├── metadata/           # EXIF + file hash analysis
+│   │   ├── fact_checker.py     # Claim verification agent
+│   │   └── trust/              # Multi-signal trust engine
+│   ├── api/                    # FastAPI route handlers
+│   ├── services/               # Business logic layer
+│   ├── schemas/                # Pydantic request/response models
+│   ├── config/                 # Settings + constants/enums
+│   ├── utils/                  # Logger, file handler
+│   └── tests/                  # 35-test pytest suite
+└── frontend/                   # Vanilla HTML/CSS/JS verification hub
+    ├── index.html
+    ├── styles.css
+    └── app.js
 ```
-
-*A dedicated architecture diagram is in progress — the flow above reflects the current request pipeline accurately in the meantime.*
-
-**Request flow:** Upload → Validation → Preprocessing → Model Inference → Trust Engine → Recommendation → JSON Response
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Backend / API | FastAPI, Python |
-| AI / ML | PyTorch, Hugging Face Transformers |
-| Computer Vision | OpenCV |
-| NLP | RoBERTa |
-| Acceleration | CUDA |
-| API Docs | Swagger UI / OpenAPI |
-
-**Models in production:**
-
-| Media | Model |
-|---|---|
-| Image | `Wvolf/ViT_Deepfake_Detection` |
-| Video | ViT + frame extraction |
-| Text | `hamzab/roberta-fake-news-classification` |
-| Audio | In progress |
 
 ---
 
 ## Quick Start
 
-```bash
-# Clone
-git clone https://github.com/samdroz/Project_ARGUS.git
-cd Project_ARGUS/backend
+### 1. Prerequisites
 
-# Set up environment
+- Python 3.11+
+- Node.js v18+ (optional, only if rebuilding frontend)
+- NVIDIA GPU recommended (CUDA 12.8+ for RTX 4060)
+
+### 2. Install Dependencies
+
+```powershell
+cd "PROJECT ARGUS"
 python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
-
-# Install
-pip install -r requirements.txt
+venv\Scripts\pip install -r backend\requirements.txt
 ```
 
-Create a `.env` file in `backend/`:
+### 3. Configure Environment
 
-```env
-APP_NAME=Project ARGUS
-APP_VERSION=1.1.0
-
-HOST=127.0.0.1
-PORT=8000
-
-IMAGE_MODEL=Wvolf/ViT_Deepfake_Detection
-TEXT_MODEL=hamzab/roberta-fake-news-classification
-
-DEVICE=cuda
-MAX_UPLOAD_SIZE=52428800
+```powershell
+# backend\.env is pre-configured with safe defaults
+# Edit if needed:
+notepad backend\.env
 ```
 
-Run it:
+### 4. Start the Backend
 
-```bash
-uvicorn main:app --reload
+```powershell
+cd backend
+..\venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Interactive API docs: `http://127.0.0.1:8000/docs`
+### 5. Open the Verification Hub
+
+Visit **http://localhost:8000/app** in your browser.
+
+API documentation is at **http://localhost:8000/docs** (Swagger UI).
 
 ---
 
-## API Reference
+## API Endpoints
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/analyze/image` | POST | Analyze an uploaded image |
-| `/analyze/video` | POST | Analyze an uploaded video |
-| `/analyze/text` | POST | Analyze submitted text |
-| `/health` | GET | Health check |
-| `/` | GET | Root / service info |
-
-**Example response**
-
-```json
-{
-  "status": "success",
-  "media_type": "image",
-  "file": {
-    "id": "...",
-    "name": "image.jpg"
-  },
-  "analysis": {
-    "prediction": "Real",
-    "confidence": 94.23
-  },
-  "trust": {
-    "score": 94,
-    "risk": "LOW",
-    "confidence": 94.23,
-    "recommendation": "...",
-    "factors": [
-      "Very high model confidence.",
-      "No major manipulation indicators detected."
-    ]
-  }
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Application info |
+| `GET` | `/health` | Live health & model status |
+| `POST` | `/analyze/text` | Analyze text / article |
+| `POST` | `/analyze/image` | Analyze uploaded image |
+| `POST` | `/analyze/video` | Analyze uploaded video |
+| `POST` | `/analyze/audio` | Analyze uploaded audio |
+| `POST` | `/analyze/url` | Analyze web URL |
+| `GET` | `/app` | Frontend verification hub |
 
 ---
 
-## Project Structure
+## Running Tests
 
+```powershell
+cd backend
+..\venv\Scripts\python.exe -m pytest tests/ -v
 ```
-backend/
-├── ai/
-│   ├── image/
-│   ├── video/
-│   ├── text/
-│   ├── metadata/
-│   ├── trust/
-│   └── model_manager.py
-├── api/
-├── config/
-├── schemas/
-├── services/
-├── tests/
-├── uploads/
-├── utils/
-├── main.py
-├── requirements.txt
-└── .env
-```
+
+**35 tests across 11 test modules — all passing.**
+
+| Test Module | Coverage |
+|-------------|---------|
+| `test_api_endpoints.py` | All 5 modality endpoints + root + health |
+| `test_text_pipeline.py` | Stylistic analyzer, claim extraction, RoBERTa detector |
+| `test_image_pipeline.py` | ELA forensics, corrupt file handling, metadata |
+| `test_audio_pipeline.py` | WAV loader, spectral features, acoustic detector |
+| `test_trust_engine.py` | Trust scoring, risk levels, factor generation |
+| `test_url_and_ssrf.py` | SSRF blocking, domain classification, deduplication |
+| `test_fact_checker.py` | MockSearchProvider, stance evaluation, claim verification |
+| `test_video.py` | Frame extraction, temp dir cleanup |
+| `test_video_detector.py` | Temporal aggregation |
+| `test_model.py` | ModelManager status reporting |
+| `test_settings.py` | Configuration loading |
 
 ---
 
-## Roadmap
+## Design Principles
 
-| Shipped | In Progress / Planned |
-|---|---|
-| Image deepfake detection | Audio deepfake detection |
-| Video deepfake detection | URL verification |
-| Fake news (text) detection | React dashboard |
-| Trust Engine + explainability | Chrome extension |
-| Metadata analysis | Docker support |
-| Model manager, logging, health checks | Cloud deployment |
-
-## Future Work
-
-Near-term, the priority is rounding out modality coverage with audio deepfake detection and URL-level verification, so ARGUS can evaluate a claim regardless of how it's packaged. Beyond that, the focus shifts to accessibility and deployment: a React dashboard and Chrome extension to make the Trust Engine usable without touching the API directly, plus Docker support and a cloud deployment path so the backend can run outside a local GPU setup.
-
-## Vision
-
-ARGUS is built toward a single verification layer that any application can call into — a moderation pipeline, a newsroom tool, a browser extension — instead of maintaining separate detection stacks for every media type it handles. The modular model-manager design is deliberate: as stronger detection models emerge for any modality, they should be swappable without changing the API surface consumers already depend on.
+1. **No fabricated outputs** — If a neural model fails to load, a deterministic fallback is used and honestly reported.
+2. **Honest uncertainty** — `NO EVIDENCE ≠ FALSE`. Insufficient evidence yields `trust_score = null`, `risk = INSUFFICIENT_EVIDENCE`.
+3. **SSRF security** — All external URL fetches pass through strict IP/hostname validation.
+4. **Calibrated trust** — Trust score is a multi-signal weighted composite, not a simple confidence inversion.
+5. **Lazy model loading** — Models load on first use or at startup, with CUDA/CPU fallback.
 
 ---
 
-## Contributing
+## Environment Variables
 
-Issues and PRs are welcome — this is early-stage and moving fast, so open an issue before starting on anything large so we can align on direction first.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APP_NAME` | `Project ARGUS` | Application name |
+| `APP_VERSION` | `2.0.0` | Version string |
+| `DEBUG` | `false` | Debug mode |
+| `PORT` | `8000` | Server port |
+| `DEVICE` | `auto` | `cuda`, `cpu`, or `auto` |
+| `MAX_UPLOAD_SIZE` | `52428800` | Max file size (50MB) |
+| `TEXT_MODEL_ID` | `hamzab/roberta-fake-news-classification` | HuggingFace model |
+| `IMAGE_MODEL_ID` | `Wvolf/ViT_Deepfake_Detection` | HuggingFace model |
+| `VIDEO_FRAME_INTERVAL` | `30` | Frames between samples |
+| `VIDEO_MAX_FRAMES` | `10` | Max frames per video |
+| `SEARCH_PROVIDER` | `duckduckgo` | `duckduckgo` or `mock` |
+| `CORS_ORIGINS` | `*` | Allowed CORS origins |
+
+---
 
 ## License
 
-Released under the [MIT License](LICENSE).
+MIT License — see [LICENSE](LICENSE).
 
 ---
 
-<div align="center">
-
-Built by **Sam Dharan Rozario** — backend architecture, AI integration, and model deployment.
-
-[GitHub](https://github.com/samdroz) · [LinkedIn](https://linkedin.com/in/samdroz)
-
-If ARGUS is useful to you, a ⭐ on the repo helps a lot.
-
-</div>
+> **Disclaimer**: Results are probabilistic assessments based on AI models and deterministic forensics. They are not definitive truth determinations. Always apply critical thinking and consult primary sources.

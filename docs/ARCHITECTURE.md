@@ -1,211 +1,199 @@
-# Project ARGUS — Architecture
-
-This document explains the internal architecture of the Project ARGUS backend. It complements [README.md](README.md) (project overview) and [API.md](API.md) (public API reference).
-
-## Table of Contents
-
-- [Overview](#overview)
-- [High-Level Architecture](#high-level-architecture)
-- [Folder Structure](#folder-structure)
-- [Layers](#layers)
-  - [API Layer](#api-layer)
-  - [Service Layer](#service-layer)
-  - [AI Layer](#ai-layer)
-  - [Model Manager](#model-manager)
-  - [Trust Engine](#trust-engine)
-- [Configuration](#configuration)
-- [Logging](#logging)
-- [Request Lifecycle](#request-lifecycle)
-- [Scalability](#scalability)
-- [Design Principles](#design-principles)
-- [Versioning](#versioning)
-
----
+# Project ARGUS — System Architecture
 
 ## Overview
 
-Project ARGUS follows a modular, service-oriented architecture. The backend separates:
-
-- API Layer
-- Service Layer
-- AI Layer
-- Trust Engine
-- Utility Layer
-
-This separation makes the project easier to extend, maintain, and test — each layer can change independently as long as it honors the interface the next layer expects.
-
-## High-Level Architecture
+Project ARGUS is a layered multimodal verification platform. Each modality follows the same pipeline pattern: **input validation → AI inference → forensics → trust synthesis → standardized response**.
 
 ```
-                 User
-                  │
-                  ▼
-          FastAPI REST API
-                  │
-                  ▼
-             API Layer
-                  │
-                  ▼
-          Service Layer
-      ┌─────────┼─────────┐
-      ▼         ▼         ▼
-  Image      Video      Text
-  Service    Service    Service
-      │         │         │
-      ▼         ▼         ▼
-  Image AI   Video AI   Text AI
-      └─────────┼─────────┘
-                ▼
-         Trust Engine
-                ▼
-      Standard Response
-                ▼
-           JSON Output
-```
-
-## Folder Structure
-
-```
-backend/
-├── ai/
-│   ├── image/
-│   ├── video/
-│   ├── text/
-│   ├── metadata/
-│   ├── trust/
-│   └── model_manager.py
-├── api/
-├── config/
-├── schemas/
-├── services/
-├── tests/
-├── uploads/
-├── utils/
-├── main.py
-├── requirements.txt
-└── .env
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Frontend (Vanilla JS)                          │
+│  Text │ Image │ Video │ Audio │ URL   ←→   Trust Meter │ Claim Cards │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             │  HTTP (REST / multipart)
+┌────────────────────────────▼─────────────────────────────────────────┐
+│                        FastAPI Backend                                │
+│                                                                       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
+│  │ /text    │ │ /image   │ │ /video   │ │ /audio   │ │ /url     │  │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘  │
+│       │             │             │             │             │        │
+│  ┌────▼─────────────▼─────────────▼─────────────▼─────────────▼───┐  │
+│  │                       Service Layer                              │  │
+│  │  text_service  image_service  video_service  audio_service      │  │
+│  │  url_service   report_service                                    │  │
+│  └──────────────────────────┬───────────────────────────────────────┘  │
+│                             │                                          │
+│  ┌──────────────────────────▼───────────────────────────────────────┐  │
+│  │                         AI Layer                                  │  │
+│  │                                                                   │  │
+│  │  ┌────────────┐  ┌─────────────┐  ┌──────────────┐              │  │
+│  │  │ ModelManager│  │ FactChecker │  │  Trust Engine│              │  │
+│  │  │ (lazy CUDA)│  │ (search+NLI)│  │  (scoring)   │              │  │
+│  │  └────────────┘  └─────────────┘  └──────────────┘              │  │
+│  │                                                                   │  │
+│  │  text/  image/  video/  audio/  url/  metadata/                 │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Layers
+## Layer Descriptions
 
-### API Layer
+### 1. API Layer (`api/`)
 
-**Location:** `api/`
+FastAPI routers with input validation and error handling. Each router delegates to its service immediately — no business logic here.
 
-Responsible for:
-- Receiving requests
-- Validating input
-- Invoking services
-- Returning responses
+- `api/text.py` → validates `TextRequest` (title, content, verify_claims)
+- `api/image.py` → validates file extension, delegates to `image_service`
+- `api/video.py` → validates file extension, delegates to `video_service`
+- `api/audio.py` → validates file extension, delegates to `audio_service`
+- `api/url.py` → validates `URLRequest`, delegates to `url_service`
 
-### Service Layer
+### 2. Service Layer (`services/`)
 
-**Location:** `services/` — e.g. `image_service.py`, `video_service.py`, `text_service.py`
+Orchestrates the full pipeline for each modality:
 
-Contains the business logic between the API layer and the AI layer.
+1. **Preprocessing** — format validation, corruption detection, normalization
+2. **AI Inference** — neural model prediction (with deterministic fallback on load failure)
+3. **Forensics/Analysis** — modality-specific deterministic analysis
+4. **Trust Calculation** — multi-signal scoring via `trust/engine.py`
+5. **Report Assembly** — standardized response via `report_service.build_report()`
 
-Responsibilities:
-- Preprocessing
-- Model execution
-- Response generation
+### 3. AI Layer (`ai/`)
 
-### AI Layer
+#### ModelManager (`ai/model_manager.py`)
+- Centralized lazy model loading with thread-safe initialization
+- CUDA detection with automatic CPU fallback
+- Per-model status tracking: `loaded`, `failed`, `fallback`
+- Dynamic `id2label` resolution to avoid label inversion bugs
 
-**Location:** `ai/image/`, `ai/video/`, `ai/text/`, `ai/metadata/`, `ai/trust/`
+#### Text Pipeline (`ai/text/`)
+- `preprocess.py` — whitespace normalization, length truncation
+- `analyzer.py` — stylistic markers (clickbait patterns, caps ratio, exclamation count, atomic claim extraction)
+- `detector.py` — RoBERTa (`hamzab/roberta-fake-news-classification`) with dynamic label normalization
 
-Contains all AI models. Each module is isolated, so a given modality's model can be updated or replaced without touching the others.
+#### Image Pipeline (`ai/image/`)
+- `preprocess.py` — EXIF orientation correction, corruption detection
+- `forensics.py` — Error Level Analysis (ELA), 2D FFT grid detection, Laplacian sharpness
+- `face.py` — OpenCV 5.x-compatible face detector with `hasattr` safety guard
+- `detector.py` — ViT (`Wvolf/ViT_Deepfake_Detection`) with fallback to forensics-only
 
-### Model Manager
+#### Video Pipeline (`ai/video/`)
+- `extractor.py` — Per-request isolated temp dirs (`tempfile.mkdtemp`), FPS validation, interval sampling, guaranteed cleanup in `finally`
+- `detector.py` — Per-frame ViT inference
+- `analyzer.py` — Temporal aggregation, suspicious burst detection, consistency variance
 
-**Location:** `ai/model_manager.py`
+#### Audio Pipeline (`ai/audio/`)
+- `features.py` — Python `wave` + `torch.frombuffer` WAV loader (avoids `torchcodec` dependency); STFT spectrogram, spectral centroid, flatness, ZCR, pitch stability, spectral discontinuity
+- `detector.py` — Deterministic acoustic forensic scoring
 
-Loads AI models once during application startup and shares them across requests.
+#### URL Pipeline (`ai/url/`)
+- `validator.py` — SSRF protection: blocks loopback, RFC 1918, link-local, metadata endpoints, non-HTTP schemes; DNS rebinding prevention via socket resolution
+- `extractor.py` — `httpx` content fetch with 8s timeout and 5MB size limit
+- `classifier.py` — Domain authority classification
 
-Responsibilities:
-- Load models
-- Prevent duplicate loading
-- GPU initialization
-- Shared inference
+#### Fact-Checker (`ai/fact_checker.py`)
+- `SearchProvider` abstract interface
+- `DuckDuckGoSearchProvider` — live web search
+- `MockSearchProvider` — deterministic testing provider
+- Source deduplication (syndicated wire service dedup)
+- Stance evaluation: `SUPPORTS`, `CONTRADICTS`, `NEUTRAL`, `UNVERIFIED`
+- Domain categorization: Government, Academic, Fact-Checker, Reputable News, Encyclopedia, Secondary, Unknown
 
-### Trust Engine
+#### Trust Engine (`ai/trust/`)
+- `engine.py` — Weighted multi-signal composite scoring
+- `risk.py` — Risk level mapping with `INSUFFICIENT_EVIDENCE` guard
+- `explain.py` — Human-readable factor generation
+- `recommendation.py` — Context-aware guidance based on risk + prediction
 
-**Location:** `ai/trust/`
+#### Metadata (`ai/metadata/`)
+- `exif.py` — EXIF tag parsing, editing software signature detection (Adobe, GIMP, etc.)
+- `hash.py` — SHA-256 file fingerprinting
+- `analyzer.py` — Calibrated metadata anomaly signals
 
-Converts raw AI predictions into human-readable information.
+### 4. Configuration (`config/`)
 
-Generates:
-- Trust Score
-- Risk Level
-- Explainable Factors
-- Recommendation
+- `settings.py` — Pydantic-validated settings from environment / `.env`
+- `constants.py` — Enums: `RiskLevel`, `ClaimVerdict`, `EvidenceDirection`, `SourceCategory`
+
+### 5. Schemas (`schemas/`)
+
+- `response.py` — `StandardResponse` Pydantic model (unified across all modalities)
+- `text.py` — `TextRequest`
+- `url.py` — `URLRequest`
 
 ---
 
-## Configuration
-
-Application configuration is stored in `.env` and loaded through `config/settings.py`. This keeps secrets and environment-specific settings outside the source code. See the [README](README.md#quick-start) for the full list of configuration variables.
-
-## Logging
-
-Centralized logging captures:
-- Startup events
-- Model loading
-- API requests
-- Warnings
-- Errors
-
-## Request Lifecycle
+## Data Flow — Text Verification
 
 ```
-     Upload
-        │
-        ▼
-    Validation
-        │
-        ▼
-   File Handler
-        │
-        ▼
-   Service Layer
-        │
-        ▼
-     AI Model
-        │
-        ▼
-   Trust Engine
-        │
-        ▼
- Standard Response
-        │
-        ▼
-   JSON Response
+POST /analyze/text (JSON)
+    │
+    ▼
+api/text.py → validates TextRequest
+    │
+    ▼
+services/text_service.py
+    ├── ai/text/preprocess.py   (normalize)
+    ├── ai/text/detector.py     (RoBERTa inference)
+    ├── ai/text/analyzer.py     (stylistic markers, claim extraction)
+    ├── ai/fact_checker.py      (claim verification via search)
+    ├── ai/trust/engine.py      (multi-signal scoring)
+    └── services/report_service.py (assemble StandardResponse)
+    │
+    ▼
+JSON response
 ```
 
 ---
 
-## Scalability
+## Security Architecture
 
-ARGUS is designed so additional modalities can be integrated without changing the existing API architecture. Planned additions include:
+### SSRF Defense (URL Modality)
 
-- Audio Detection
-- URL Verification
-- OCR
-- Browser Extension
-- Cloud Deployment
+```python
+# ai/url/validator.py — checks performed in order:
+1. Scheme whitelist: only https:// and http://
+2. Hostname blocklist: localhost, 127.x, ::1
+3. ipaddress.ip_address(hostname).is_private → block RFC 1918
+4. ipaddress.ip_address(hostname).is_loopback → block
+5. ipaddress.ip_address(hostname).is_link_local → block (169.254.x)
+6. ipaddress.ip_address(hostname).is_multicast → block
+7. socket.getaddrinfo(hostname) → DNS resolve → re-check resolved IP
+   (prevents DNS rebinding attacks)
+```
 
-## Design Principles
+### File Upload Security
 
-- Modular
-- Scalable
-- Explainable
-- Maintainable
-- GPU Accelerated
-- API First
+- Extension whitelist per modality (no `.exe`, `.sh`, etc.)
+- Size limit enforced at handler level (`MAX_UPLOAD_SIZE`)
+- Files saved to isolated temp paths with UUID-based filenames
+- Original filename preserved in metadata only (not used for path operations)
 
 ---
 
-## Versioning
+## Deterministic Fallbacks
 
-The current backend architecture is aligned with version `1.1.0`. For a full history of changes, see [CHANGELOG.md](CHANGELOG.md).
+When a neural model fails to load (network, CUDA OOM, etc.), the system degrades gracefully:
+
+| Modality | Fallback |
+|----------|---------|
+| Text | Linguistic analysis only (stylistic markers, claim extraction) |
+| Image | ELA + FFT forensics only (no ViT classification) |
+| Video | Frame-level forensics only |
+| Audio | Acoustic spectral forensics only |
+
+Fallback usage is always honestly reported in the `model` field of the response and in `limitations`.
+
+---
+
+## Known Quirks
+
+| Issue | Resolution |
+|-------|-----------|
+| `cv2.CascadeClassifier` missing in OpenCV 5.0.0 | `hasattr(cv2, 'CascadeClassifier')` guard in `face.py` |
+| `torchaudio.load()` requires `torchcodec` in PyTorch 2.11+ | Use Python `wave` + `torch.frombuffer` in `features.py` |
+| ViT `id2label` returns `{0: 'Real', 1: 'Fake'}` | Dynamic `id2label` normalization in `detector.py` |
+| RoBERTa `id2label` returns `{0: 'FAKE', 1: 'TRUE'}` | Normalized to canonical `Real`/`Fake` strings |
+| `report_service.build_report()` called with both `metadata` and `metadata_result` kwarg names | Both accepted via union parameter handling |
